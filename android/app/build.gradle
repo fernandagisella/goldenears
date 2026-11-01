@@ -84,6 +84,31 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+
+        externalNativeBuild {
+            cmake {
+                // Share the STL with React Native instead of linking a static copy.
+                arguments "-DANDROID_STL=c++_shared"
+            }
+        }
+    }
+
+    /**
+     * GoldenEars C++20 audio engine (libgoldenears.so).
+     * ABIs come from the reactNativeArchitectures property in gradle.properties.
+     */
+    externalNativeBuild {
+        cmake {
+            path file("src/main/cpp/CMakeLists.txt")
+            version "3.22.1"
+        }
+    }
+
+    packaging {
+        jniLibs {
+            // React Native and the engine both ship libc++_shared.so.
+            pickFirsts += ["**/libc++_shared.so"]
+        }
     }
     signingConfigs {
         debug {

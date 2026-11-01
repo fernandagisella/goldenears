@@ -1,11 +1,40 @@
-#include <jni.h>
-#include <android/log.h>
+#include "engine/AudioEngine.h"
 
-#define LOG_TAG "GoldenEarsEngine"
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+namespace goldenears {
 
-extern "C" JNIEXPORT jstring JNICALL
-Java_com_goldenears_bridge_AudioEngineBridge_getEngineStatus(JNIEnv* env, jobject /* this */) {
-    LOGI("GoldenEars C++20 Audio Engine initialized successfully.");
-    return env->NewStringUTF("GoldenEars Core Ready - Bit-Perfect Active");
+AudioEngine& AudioEngine::instance() {
+    static AudioEngine engine;
+    return engine;
 }
+
+bool AudioEngine::initialize() {
+    State expected = State::Idle;
+    // If another thread already moved the state, compare_exchange fails and
+    // that is fine: the engine is initialized either way.
+    state_.compare_exchange_strong(expected, State::Initialized);
+    return state_.load() == State::Initialized;
+}
+
+AudioEngine::State AudioEngine::state() const noexcept {
+    return state_.load();
+}
+
+std::string AudioEngine::statusString() const {
+    std::string status = "GoldenEars Core v";
+    status += kVersion;
+    status += " - state: ";
+    status += toString(state());
+    return status;
+}
+
+const char* toString(AudioEngine::State state) noexcept {
+    switch (state) {
+        case AudioEngine::State::Idle:
+            return "Idle";
+        case AudioEngine::State::Initialized:
+            return "Initialized";
+    }
+    return "Unknown";
+}
+
+}  // namespace goldenears
